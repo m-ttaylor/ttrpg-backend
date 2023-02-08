@@ -11,11 +11,11 @@ type RecipeDocument = Document & {
 
 type RecipeInput = {
   name: RecipeDocument['name'];
-  description: RecipeDocument['description'];
+  description?: RecipeDocument['description'];
   tags: RecipeDocument['tags'];
   ingredients: RecipeDocument['ingredients'];
   instructions: RecipeDocument['instructions'];
-  notes: RecipeDocument['notes'];
+  notes?: RecipeDocument['notes'];
 };
 
 type EditRecipeInput = RecipeInput & {

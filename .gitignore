@@ -1,4 +1,5 @@
 config/default.ts
 node_modules
+coverage
 .vscode
 .pytest_cache

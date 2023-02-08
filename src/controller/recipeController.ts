@@ -1,165 +1,115 @@
 import { Types } from "mongoose";
-import { Recipe, RecipeInput } from "../models/recipeModel"
+import { EditRecipeInput, Recipe, RecipeInput } from "../models/recipeModel"
 
-import { NextFunction, Request, Response, Router } from 'express';
+import { Request, Response, Router } from 'express';
 import recipeService from "../services/recipeService";
+import { CreateRecipeRequest, CreateRecipeResponse, DeleteRecipeResponse, RecipeResponse, UpdateRecipeResponse } from "../types/types";
 
 const recipesRouter = Router();
 
-export const getAllRecipes = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllRecipesHandler = async (req: Request, res: Response) => {
+
+  let recipes: RecipeResponse[] | null;
 
   try {
-    const recipes = await recipeService.getAllRecipes();
-    // const recipes = await Recipe.find({});
-    res.status(200).send(recipes);
-  } catch (e: any) {
-    res.status(400).send(e.message);
-  }
-};
-
-export const getRecipe = async (req: Request<{ id: string; }, {}, {}>, res: Response) => {
-  const { params } = req;
-
-  try {
-     // attempting to cast first will give a better error
-    const recipe = await recipeService.getRecipe(params.id);
-    console.log("recipe is", recipe);
-    return res.status(200).send(recipe);
+    recipes = await recipeService.getAllRecipes();
   } catch (e: any) {
     return res.status(400).send(e.message);
   }
+
+  if (recipes) {
+    return res.status(200).send(recipes);
+  } else {
+    return res.sendStatus(404);
+  }
 };
 
-recipesRouter.post('/', async (req: Request<{}, {}, RecipeInput>, res: Response) => {
+
+export const getRecipeHandler = async (req: Request<{ id: string; }, {}, {}>, res: Response) => {
+  const { params } = req;
+
+  let recipe: RecipeResponse;
+  try {
+    recipe = await recipeService.getRecipe(params.id);
+  } catch (e: any) {
+    return res.status(400).send(e.message);
+  }
+
+  if (recipe) {
+    return res.status(200).json(recipe);
+  } else {
+    return res.status(404).send("recipe not found");
+  }
+};
+
+export const createRecipeHandler = async (req: Request<{}, {}, CreateRecipeRequest>, res: Response) => {
 
   const { body } = req;
-  console.log('creating a recipe!');
+  console.log('attempting to create a recipe...');
 
-  console.log(body);
-
-  const newRecipe = new Recipe({
-    name: body.name,
-    description: body.description,
-    tags: body.tags,
-    ingredients: body.ingredients,
-    instructions: body.instructions,
-    notes: body.notes,
-  });
+  let createdRecipeResponse: CreateRecipeResponse; 
 
   try {
-    const savedRecipe = await newRecipe.save();
-    res.status(200).send(savedRecipe);
+    createdRecipeResponse = await recipeService.createRecipe(body);
   } catch (e: any) {
-    res.status(400).send(e.message);
+    console.log('recipe creation failed unexpectedly');
+    return res.status(400).send(e.message)
   }
-});
 
-recipesRouter.get('/', getAllRecipes);
-recipesRouter.get('/:id', getRecipe);
+  if (createdRecipeResponse.result === "success") {
+    console.log('recipe creation succeeded');
+    return res.status(201).send(createdRecipeResponse);
+  } else {
+    console.log('recipe creation failed');
+    return res.status(400).send("Failed to create recipe")
+  }
+};
 
-recipesRouter.put('/:id', async (req: Request<{id: string}, {}, RecipeInput>, res: Response) => {
+export const editRecipeHandler = async (req: Request<{id: string}, {}, EditRecipeInput>, res: Response) => {
   const { params, body } = req;
   
+  let editRecipeResponse: UpdateRecipeResponse;
+
   try {
-    const id = Types.ObjectId.createFromHexString(params.id);
-    const updatedRecipe = await Recipe.findByIdAndUpdate(
-      id, body,
-      { new: true, runValidators: true, context: 'query' }
-    );
-
-    res.status(200).send(updatedRecipe);
+    const id: Types.ObjectId = new Types.ObjectId(params.id);
+    editRecipeResponse = await recipeService.editRecipe(id, body);
   } catch (e: any) {
-    res.status(400).send(e.message);
+    if (e instanceof TypeError) {
+      return res.status(400).send(e.message);
+    }
+    console.log("DEBUG: we hit this?")
+    console.log(e.message);
+    return res.status(400).send(e.message);
   }
-});
 
-recipesRouter.delete('/:id', async (req, res) => {
+  if (editRecipeResponse.result === "success") {
+    return res.status(200).send(editRecipeResponse);
+  } else {
+    return res.status(404).send("failed to edit recipe: recipe does not exist");
+  }
+}
+
+export const deleteRecipeHandler = async (req: Request, res: Response) => {
   const { params } = req;
-  // const recipe = await Recipe.findById(id);
+  let response: DeleteRecipeResponse;
 
-  // if (user._id.toString() !== blogToDelete.user.toString()) {
-  //   return response.status(401).json({
-  //     'error': 'unauthorized'
-  //   })
-  // }
   try {
-    const id = Types.ObjectId.createFromHexString(params.id); // attempting to cast first will give a better error
-    await Recipe.findByIdAndRemove(id)
-    res.sendStatus(204);
+    response = await recipeService.deleteRecipe(params.id);
   } catch (e: any) {
-    res.status(400).send(e.message);
+    return res.status(400).send(e.message);
   }
-});
 
+  if (response.result === "success") {
+    return res.sendStatus(204);
+  } else {
+    return res.status(400).send("failed to delete recipe");
+  }
+};
+
+recipesRouter.get('/', getAllRecipesHandler);
+recipesRouter.get('/:id', getRecipeHandler);
+recipesRouter.post('/', createRecipeHandler);
+recipesRouter.put('/:id', editRecipeHandler);
+recipesRouter.delete('/:id', deleteRecipeHandler);
 
 export default recipesRouter;
-
-// blogsRouter.get('/', async (request, response) => {
-//   await Blog.find({}).populate(
-//     'user', { username: 1, name: 1 },
-//   )
-//   const blogs = await Blog.find({}).populate(
-//     'comments', { message: 1 },
-//   )
-//   return response.json(blogs)
-// })
-
-// blogsRouter.get('/:id', async (request, response) => {
-//   const { user, params } = request
-//   const blog = await Blog.findById(params.id)
-
-//   return response.json(blog)
-// })
-
-
-// blogsRouter.post('/', userExtractor, async (request, response) => {
-//   const { body, user } = request
-  
-//   const blog = new Blog({
-//     title: body.title,
-//     author: body.author,
-//     url: body.url,
-//     likes: body.likes || 0,
-//     user: user._id,
-//     comments: []
-//   })
-
-//   if (body.title && body.author) {
-//     const savedBlog = await blog.save()
-//     user.blogs = user.blogs.concat(savedBlog._id)
-//     await user.save()
-
-//     response.status(201).json(savedBlog)
-//   } else {
-//     response.status(400).end()
-//   }
-// })
-
-// blogsRouter.delete('/:id', userExtractor, async (request, response) => {
-
-//   const { user, params } = request
-//   const blogToDelete = await Blog.findById(params.id)
-
-//   if (user._id.toString() !== blogToDelete.user.toString()) {
-//     return response.status(401).json({
-//       'error': 'unauthorized'
-//     })
-//   }
-
-//   await Blog.findByIdAndRemove(params.id)
-//   response.status(204).end()
-// })
-
-// blogsRouter.put('/:id', async (request, response) => {
-//   const body = request.body
-
-//   const updatedBlog = await Blog.findByIdAndUpdate(
-//     request.params.id,
-//     body,
-//     { new: true, runValidators: true, context: 'query' }
-//   )
-//   response.json(updatedBlog)
-// })
-
-// module.exports = blogsRouter
-
