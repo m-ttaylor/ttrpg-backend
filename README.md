@@ -22,3 +22,15 @@ Tests:       24 passed, 24 total
 Snapshots:   0 total
 Time:        2.216 s
 ```
+
+
+```
+# run application
+npm run dev
+
+# run tests
+npm test
+
+# run tests with coverage
+npm run test:coverage
+```
