@@ -1,4 +1,4 @@
-import mongoose, { Schema, Model, Document } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
 type RecipeDocument = Document & {
   name: string;
@@ -9,18 +9,18 @@ type RecipeDocument = Document & {
   notes: string | null;
 };
 
-type RecipeInput = {
-  name: RecipeDocument['name'];
-  description?: RecipeDocument['description'];
-  tags: RecipeDocument['tags'];
-  ingredients: RecipeDocument['ingredients'];
-  instructions: RecipeDocument['instructions'];
-  notes?: RecipeDocument['notes'];
-};
+// type RecipeInput = {
+//   name: RecipeDocument['name'];
+//   description?: RecipeDocument['description'];
+//   tags: RecipeDocument['tags'];
+//   ingredients: RecipeDocument['ingredients'];
+//   instructions: RecipeDocument['instructions'];
+//   notes?: RecipeDocument['notes'];
+// };
 
-type EditRecipeInput = RecipeInput & {
-  name: RecipeDocument['_id'];
-};
+// type EditRecipeInput = RecipeInput & {
+//   name: RecipeDocument['_id'];
+// };
 
 const recipeSchema = new Schema(
   {
@@ -58,4 +58,9 @@ const recipeSchema = new Schema(
 
 const Recipe = mongoose.model<RecipeDocument>('Recipe', recipeSchema);
 
-export { Recipe, RecipeInput, EditRecipeInput, RecipeDocument };
+export {
+  Recipe,
+  // RecipeInput, 
+  // EditRecipeInput,
+  RecipeDocument
+};

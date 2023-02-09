@@ -1,9 +1,6 @@
-import { Types } from "mongoose";
-import { EditRecipeInput, Recipe, RecipeInput } from "../models/recipeModel"
-
 import { Request, Response, Router } from 'express';
 import recipeService from "../services/recipeService";
-import { CreateRecipeRequest, CreateRecipeResponse, DeleteRecipeResponse, RecipeResponse, UpdateRecipeResponse } from "../types/types";
+import { CreateRecipeRequest, CreateRecipeResponse, DeleteRecipeResponse, RecipeResponse, UpdateRecipeRequest, UpdateRecipeResponse } from "../types/types";
 
 const recipesRouter = Router();
 
@@ -65,19 +62,14 @@ export const createRecipeHandler = async (req: Request<{}, {}, CreateRecipeReque
   }
 };
 
-export const editRecipeHandler = async (req: Request<{id: string}, {}, EditRecipeInput>, res: Response) => {
+export const editRecipeHandler = async (req: Request<{id: string}, {}, UpdateRecipeRequest>, res: Response) => {
   const { params, body } = req;
   
   let editRecipeResponse: UpdateRecipeResponse;
 
   try {
-    const id: Types.ObjectId = new Types.ObjectId(params.id);
-    editRecipeResponse = await recipeService.editRecipe(id, body);
+    editRecipeResponse = await recipeService.editRecipe(params.id, body);
   } catch (e: any) {
-    if (e instanceof TypeError) {
-      return res.status(400).send(e.message);
-    }
-    console.log("DEBUG: we hit this?")
     console.log(e.message);
     return res.status(400).send(e.message);
   }
@@ -85,7 +77,14 @@ export const editRecipeHandler = async (req: Request<{id: string}, {}, EditRecip
   if (editRecipeResponse.result === "success") {
     return res.status(200).send(editRecipeResponse);
   } else {
-    return res.status(404).send("failed to edit recipe: recipe does not exist");
+    switch (editRecipeResponse.error) {
+      case "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer":
+        return res.status(400).send(editRecipeResponse);
+      case "Failed to edit recipe: recipe does not exist":
+        return res.status(404).send(editRecipeResponse);
+      default:
+        return res.sendStatus(400);
+    }
   }
 }
 

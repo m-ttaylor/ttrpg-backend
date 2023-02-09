@@ -1,7 +1,6 @@
-import mongoose, { Types } from "mongoose";
-import { EditRecipeInput, Recipe, RecipeDocument, RecipeInput } from "../models/recipeModel"
+import { Types } from "mongoose";
+import { Recipe, RecipeDocument } from "../models/recipeModel"
 import { CreateRecipeRequest, CreateRecipeResponse, DeleteRecipeResponse, UpdateRecipeRequest, RecipeResponse, UpdateRecipeResponse } from "../types/types";
-
 
 const getAllRecipes = async (): Promise<RecipeResponse[] | null> => {
   const recipes = await Recipe.find({});
@@ -38,16 +37,40 @@ const createRecipe = async (body: CreateRecipeRequest): Promise<CreateRecipeResp
   return savedRecipeResponse;
 }
 
-const editRecipe = async (id: Types.ObjectId, body: UpdateRecipeRequest): Promise<UpdateRecipeResponse> => { 
+const editRecipe = async (id: string, body: UpdateRecipeRequest): Promise<UpdateRecipeResponse> => { 
+  let objectId: Types.ObjectId;
+  try {
+    objectId = new Types.ObjectId(id);
+  } catch (e: any) {
+    // if (e instanceof TypeError) {
+    // Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer
+    return {
+      result: "failure",
+      error: e.message
+    };
+    // }
+  }
+
   const updatedRecipe = await Recipe.findByIdAndUpdate(
     id, body,
-    { new: true, runValidators: true, context: 'query' }
+    {
+      new: true,
+      runValidators: true,
+      context: 'query'
+    },
   );
+
   if (updatedRecipe) {
-    return { result: "success", response: updatedRecipe }
+    return {
+      result: "success",
+      response: updatedRecipe
+    }
   } else {
-    return { result: "failure" }
-  }
+    return {
+      result: "failure",
+      error: "Failed to edit recipe: recipe does not exist"
+    }
+  }  
 };
 
 const deleteRecipe = async (id: string): Promise<DeleteRecipeResponse> => {

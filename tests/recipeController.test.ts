@@ -325,16 +325,23 @@ test("editRecipeHandler sends a 400 response when called with an invalid id", as
     json: jest.fn(),
   };
 
-  const mockRecipeService = jest.spyOn(recipeService, "editRecipe");
+  const mockRecipeService = jest.spyOn(recipeService, "editRecipe")
+    .mockResolvedValueOnce({
+        result: "failure",
+        error: BSONTypeErrorMessage
+      });
 
   await editRecipeHandler(mockRequest, mockResponse);
 
   expect(mockResponse.status).toHaveBeenCalledTimes(1);
   expect(mockResponse.status).toHaveBeenCalledWith(400);
   expect(mockResponse.send).toHaveBeenCalledTimes(1);
-  expect(mockResponse.send).toHaveBeenCalledWith(BSONTypeErrorMessage);
+  expect(mockResponse.send).toHaveBeenCalledWith({
+    result: "failure",
+    error: BSONTypeErrorMessage
+  });
 
-  expect(mockRecipeService).toHaveBeenCalledTimes(0);
+  expect(mockRecipeService).toHaveBeenCalledTimes(1);
 });
 
 
@@ -353,18 +360,24 @@ test("editRecipeHandler sends a 404 response when called with a valid id that do
   };
 
   const mockRecipeService = jest.spyOn(recipeService, "editRecipe")
-    .mockResolvedValueOnce({result: "failure"});
+    .mockResolvedValueOnce({
+      result: "failure",
+      error: "Failed to edit recipe: recipe does not exist"
+    });
 
   await editRecipeHandler(mockRequest, mockResponse);
 
   expect(mockResponse.status).toHaveBeenCalledWith(404);
   expect(mockResponse.send).toHaveBeenCalledTimes(1);
-  expect(mockResponse.send).toHaveBeenCalledWith("failed to edit recipe: recipe does not exist");
+  expect(mockResponse.send).toHaveBeenCalledWith({
+    result: "failure",
+    error: "Failed to edit recipe: recipe does not exist"
+  });
 
   expect(mockRecipeService).toHaveBeenCalledTimes(1);
 });
 
-test("editRecipeHandler sends a 400 response when an error occurs in recipeService", async () => {
+test("editRecipeHandler sends a 400 response when an unexpected error occurs in recipeService", async () => {
   // note: mongoose editing as is allows us to include 0 - all fields, and fields not included will not be changed
   const mockRequest: any = {
     params: { id: "63daaf922f298ddb0db690cf" },
@@ -384,6 +397,32 @@ test("editRecipeHandler sends a 400 response when an error occurs in recipeServi
   expect(mockResponse.status).toHaveBeenCalledWith(400);
   expect(mockResponse.send).toHaveBeenCalledTimes(1);
   // expect(mockResponse.send).toHaveBeenCalledWith("failed edit recipe: recipe does not exist");
+
+  expect(mockRecipeService).toHaveBeenCalledTimes(1);
+});
+
+test("editRecipeHandler sends a 400 response when no error is thrown by recipeService, but an error result is recieved", async () => {
+  const mockRequest: any = {
+    params: { id: "63daaf922f298ddb0db690cf" },
+  };
+
+  const mockResponse: any = {
+    status: jest.fn().mockReturnThis(),
+    sendStatus: jest.fn(),
+    send: jest.fn(),
+    json: jest.fn(),
+  };
+
+  const mockRecipeService = jest.spyOn(recipeService, "editRecipe")
+    .mockResolvedValueOnce({
+      result: "failure"
+    });
+
+  await editRecipeHandler(mockRequest, mockResponse);
+
+  expect(mockResponse.sendStatus).toHaveBeenCalledWith(400);
+  expect(mockResponse.sendStatus).toHaveBeenCalledTimes(1);
+  expect(mockResponse.send).toHaveBeenCalledTimes(0);
 
   expect(mockRecipeService).toHaveBeenCalledTimes(1);
 });

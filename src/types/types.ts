@@ -1,11 +1,11 @@
-import { EditRecipeInput } from "../models/recipeModel";
+// import { EditRecipeInput } from "../models/recipeModel";
 
-type StrictPropertyCheck<T, TExpected, TError> =
-  Exclude<keyof T, keyof TExpected> extends never ? {} : TError;
-interface EditRecipeError extends TypeError { }
+// type StrictPropertyCheck<T, TExpected, TError> =
+//   Exclude<keyof T, keyof TExpected> extends never ? {} : TError;
+// interface EditRecipeError extends TypeError { }
 
-export type StrictEditRecipeRequest<T> = T &
-  StrictPropertyCheck<T, EditRecipeInput, EditRecipeError>
+// export type StrictEditRecipeRequest<T> = T &
+//   StrictPropertyCheck<T, EditRecipeInput, EditRecipeError>
 
 export type ResultStatus = "success" | "failure"
 
@@ -43,6 +43,7 @@ export type CreateRecipeResponse = {
 
 export type UpdateRecipeResponse = {
   result: ResultStatus;
+  error?: string;
   response?: RecipeResponse;
 }
 

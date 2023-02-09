@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import { CreateRecipeRequest, CreateRecipeResponse, UpdateRecipeRequest, RecipeItem, RecipeResponse, UpdateRecipeResponse } from "../src/types/types";
 
 const testRecipeId = "63daaf922f298ddb0db690cf"
+const BSONTypeErrorMessage = "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer";
 
 const testEditRecipeRequest: UpdateRecipeRequest = {
   "name": "baked feta",
@@ -116,25 +117,34 @@ test("editRecipe returns successful response when called on a valid id", async (
   const mockFindByIdAndUpdate = jest.spyOn(Recipe, "findByIdAndUpdate")
     .mockResolvedValueOnce(findByIdAndUpdateResponse);
   
-  expect(recipeService.editRecipe(new Types.ObjectId(testRecipeId), testEditRecipeRequest))
+  expect(recipeService.editRecipe(testRecipeId, testEditRecipeRequest))
     .resolves.toEqual(expectedEditRecipeResponse);
   expect(mockFindByIdAndUpdate).toBeCalledTimes(1);
   expect(mockFindByIdAndUpdate).toBeCalledWith(
-    new Types.ObjectId(testRecipeId),
+    testRecipeId,
     testEditRecipeRequest,
     { new: true, runValidators: true, context: 'query' }
   );
 })
 
+test("editRecipe returns failure response when id is not a valid ObjectId", async () => {
+  const mockFindByIdAndUpdate = jest.spyOn(Recipe, "findByIdAndUpdate");
+
+  expect(recipeService.editRecipe("invalid id", testEditRecipeRequest))
+    .resolves.toEqual({result: "failure", error: BSONTypeErrorMessage });
+  expect(mockFindByIdAndUpdate).toBeCalledTimes(0);
+})
+
+
 test("editRecipe returns failure response when findByIdAndUpdate returns null", async () => {
   const mockFindByIdAndUpdate = jest.spyOn(Recipe, "findByIdAndUpdate")
     .mockResolvedValueOnce(null);
   
-  expect(recipeService.editRecipe(new Types.ObjectId(testRecipeId), testEditRecipeRequest))
-    .resolves.toEqual({ result: "failure" });
+  expect(recipeService.editRecipe(testRecipeId, testEditRecipeRequest))
+    .resolves.toEqual({result: "failure", error: "Failed to edit recipe: recipe does not exist" });
   expect(mockFindByIdAndUpdate).toBeCalledTimes(1);
   expect(mockFindByIdAndUpdate).toBeCalledWith(
-    new Types.ObjectId(testRecipeId),
+    testRecipeId,
     testEditRecipeRequest,
     { new: true, runValidators: true, context: 'query' }
   );
